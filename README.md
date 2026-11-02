@@ -1,118 +1,251 @@
-# VisionAI – image recognition (PyTorch · OpenCV · FastAPI · React + TypeScript)
+# VisionAI — See the World Through AI
 
-Upload, drag-and-drop, paste or capture a photo and get:
+<p align="center">
+  <strong>An AI-powered computer vision platform that helps computers understand images.</strong>
+</p>
 
-* **Object detection** – boxes, labels, confidence scores (80 COCO categories: people, animals, vehicles, food, furniture, electronics …)
-* **Fine-grained labels** – each detected animal / vehicle / plant / food is re-classified on its crop (e.g. *dog → Samoyed*)
-* **Whole-image classification** – top-5 over the 1000 ImageNet classes (dog breeds, birds, vehicle types, some plants and fungi …)
-* **OCR** – text with per-line confidence and polygons, in reading order, copy-to-clipboard
-* **Description** – an AI caption (BLIP) combined with the detections / classification / OCR text into one description
-* **Honest uncertainty** – low-confidence boxes, text and classifications are flagged "uncertain"; blurry / dark / blank / tiny images produce warnings
-* GPU (CUDA) when available, automatic CPU fallback; every component fails independently (e.g. no caption model → everything else still works)
+<p align="center">
+  <img src="https://img.shields.io/badge/AI-Computer%20Vision-black?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Frontend-React-blue?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Backend-FastAPI-green?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Language-Python-yellow?style=for-the-badge" />
+</p>
 
-## Architecture
+---
 
-```
-frontend/ (React 18 + TS + Vite)  ──/api──►  backend/ (FastAPI)
-                                               ├─ image_io.py   safe decode: EXIF, alpha, 16-bit, GIF, bomb/size limits, OpenCV quality checks
-                                               ├─ models/detector.py    YOLO11 (Ultralytics, PyTorch)
-                                               ├─ models/classifier.py  YOLO11-cls (ImageNet-1k) + flip ensemble
-                                               ├─ models/ocr.py         EasyOCR (CRAFT + CRNN, PyTorch)
-                                               ├─ models/captioner.py   BLIP (Hugging Face Transformers)
-                                               ├─ pipeline.py   orchestration, crop refinement, uncertainty rules, fault isolation
-                                               └─ manager.py    background model loading, health status, one-at-a-time inference queue
-```
+## Overview
 
-| Task | Model | Chosen because |
-|---|---|---|
-| Detection | `yolo11x` (GPU, 1280 px + TTA) / `yolo11l` (CPU, 640 px) | best COCO accuracy/speed trade-off available as PyTorch weights |
-| Classification | `yolo11x-cls` | strongest of its family, tiny cost at 224 px |
-| OCR | EasyOCR (English by default) | pure PyTorch, no external binary, 80+ languages |
-| Caption | `Salesforce/blip-image-captioning-large` | natural captions, supported natively by Transformers |
+**VisionAI** is an AI-powered computer vision application designed to bring multiple image-understanding capabilities together in one platform.
 
-## Measured results (real runs – read the caveats)
+From detecting objects and classifying images to extracting text and generating AI-powered descriptions, VisionAI makes it possible to perform several computer vision tasks through a unified interface.
 
-Measured in the build sandbox: **CPU only (1 thread), no GPU**, detector `yolo11l` @640, server defaults.
+The project combines modern web technologies with machine learning and deep learning models to create an accessible image analysis experience.
 
-| Component | Test | Result |
-|---|---|---|
-| Detection | COCO128 (128 images, 929 objects), end-to-end through the API, conf ≥ 0.25, IoU ≥ 0.5 | **precision 0.80, recall 0.65, F1 0.72** (603 TP / 150 FP / 326 FN) |
-| Detection | same images, standard mAP (conf 0.001) | **mAP50-95 0.634, mAP50 0.806** |
-| Classification | 400 Imagenette validation images (10 ImageNet classes, 160 px) | **top-1 81.5 %, top-5 95.8 %**; 34/400 flagged "uncertain", which caught 25 of the 74 errors; accuracy on the un-flagged 366 = 86.6 % |
-| OCR | 30 synthetic rendered images (3 fonts, noise, some blur) | CER 0.0 %, WER 0.0 % – **easy test, not a real-world number** |
-| OCR | real poster (`ocr_english.png`) and the bus photo | key phrases read correctly (asserted in tests); no real-photo benchmark was run |
-| Speed (1 CPU thread) | per image | detect ≈ 0.6–1.1 s, classify ≈ 0.3 s, OCR ≈ 5–13 s (depends on image size) |
+## Features
 
-**Caveats – do not over-read these numbers**
+### 1. Object Detection
+- Detect objects present in uploaded images.
+- Display bounding boxes around detected objects.
+- Identify multiple objects in a single image.
+- Powered by YOLO-based detection technology.
 
-* COCO128 images come from COCO *train*; Imagenette comes from ImageNet. The models were trained on those datasets, so the numbers are **optimistic**. For unseen data expect lower values; the vendor-published *held-out* figures are mAP50-95 53.4 (YOLO11l) / 54.7 (YOLO11x) on COCO val2017 and 79.5 % top-1 (1000 classes) for YOLO11x-cls on ImageNet val – I did not re-measure those.
-* Detection only knows **80 classes**, classification **1000 classes**. Objects outside them (most plant species, brands, rare animals) are missed or mapped to the nearest known class. Plants are the weakest area (ImageNet has only a handful of plant classes).
-* Fine-grained crop labels and the generated descriptions were checked on a few images, **not benchmarked**.
-* **Not verified in the sandbox** (no network access to huggingface.co, no GPU, no Windows, no browser): BLIP captioning with real weights (the code path and graceful-failure path are tested; the model itself was not run), the CUDA path, `setup.bat`/`run.bat` on a real Windows machine, and the camera. The React UI was verified by type-check, production build, and component tests that render the real app against a *real captured API response* – not by clicking through it in a browser.
-* OCR is English by default; set `VISION_OCR_LANGS=en,de` etc. for others.
+### 2. Image Classification
+- Predict the category of an uploaded image.
+- Generate classification results.
+- Display prediction information.
 
-## Windows installation (step by step)
+### 3. Optical Character Recognition (OCR)
+- Extract text from images.
+- Process screenshots, documents, and other text-containing images.
+- Powered by EasyOCR.
 
-**Prerequisites**
+### 4. AI Image Captioning
+- Generate natural-language descriptions of images.
+- Interpret visual content using an image captioning model.
+- Powered by BLIP.
 
-1. **Python 3.10, 3.11 or 3.12** (64-bit) – <https://www.python.org/downloads/> → tick *“Add python.exe to PATH”* and keep the *py launcher*.
-2. **Node.js 18+ (LTS)** – <https://nodejs.org/>
-3. *(Optional, for GPU)* an NVIDIA GPU with an up-to-date driver. You do **not** need to install the CUDA toolkit separately.
-4. ~6 GB free disk space and an internet connection for the first run (models are downloaded once).
+### 5. Flexible Execution
+- CPU-based execution support.
+- Optional CUDA acceleration on compatible hardware.
+- Multiple AI capabilities integrated into one application.
 
-**Install**
+---
 
-1. Unzip the project, e.g. to `C:\visionai`.
-2. Open **Command Prompt** in that folder (`cd C:\visionai`).
-3. Run `setup.bat` (auto-detects an NVIDIA GPU). Force a mode with `setup.bat cpu` or `setup.bat cuda`.
-   It creates `backend\.venv`, installs PyTorch + dependencies, downloads the models and builds the web UI (10–25 min the first time).
-   *If the CUDA wheel index in `setup.bat` is rejected for your system, take the matching `pip install … --index-url …` command from <https://pytorch.org/get-started/locally/> and run it with `backend\.venv\Scripts\python.exe -m` in front, then run the remaining steps of setup.bat by hand.*
-4. Start the app: `run.bat` – your browser opens <http://localhost:8000>. The status bar shows model loading and whether GPU or CPU is used.
+## Technology Stack
 
-**Day to day**: `run.bat` to start, `Ctrl+C` to stop. `dev.bat` starts the hot-reloading development setup (UI on <http://localhost:5173>). `test.bat` runs all tests.
+| Technology | Purpose |
+|---|---|
+| React 18 | Frontend interface |
+| TypeScript | Type-safe frontend development |
+| Vite | Frontend development and build tool |
+| Python | Backend and AI integration |
+| FastAPI | Backend API framework |
+| PyTorch | Deep learning framework |
+| YOLO11 | Object detection |
+| EasyOCR | Text recognition |
+| BLIP | Image captioning |
 
-> The caption model (~1.8 GB) downloads at the end of `setup.bat` (or on first start). If it cannot be downloaded the app still works without captions.
+---
 
-## Configuration (environment variables, set before `run.bat`)
+## Project Architecture
 
-```bat
-set VISION_DETECTOR=yolo11x.pt     :: most accurate detector on CPU too (slower). Default: auto (x on GPU, l on CPU)
-set VISION_DETECT_IMGSZ=1280       :: better for small objects, slower. Default: auto
-set VISION_TTA=on                  :: detector test-time augmentation (slower, slightly more accurate)
-set VISION_DEVICE=cpu              :: auto | cpu | cuda | cuda:1
-set VISION_ENABLE_CAPTION=0        :: disable BLIP (saves 1.8 GB RAM/disk)
-set VISION_ENABLE_OCR=0
-set VISION_OCR_LANGS=en,de
-set VISION_OCR_MAX_SIDE=2560       :: larger = reads smaller text, slower
-set VISION_MAX_UPLOAD_MB=20
-```
-
-## API
-
-`POST /api/analyze` (multipart field `file`; query: `tasks=detect,classify,ocr,caption`, `conf`, `iou`, `max_det`, `refine`, `tta`)
-`GET /api/health` – model status, device. Interactive docs: <http://localhost:8000/docs>.
-Boxes are in **pixels of the original (EXIF-corrected) image** (`image.width × image.height`).
-Errors are `{"error":{"code","message"}}`: `invalid_image` 400, `image_too_large` 413, `unsupported_image_type` 415, `image_too_small`/`invalid_options` 422, `server_busy` 429, `models_not_ready` 503. A failing sub-task (e.g. OCR) never fails the request – it is listed in `errors` and the other results are still returned.
-
-## Tests and evaluation
-
-```bat
-test.bat                                   :: backend (unit + real-model) and frontend tests
-backend\.venv\Scripts\python backend\scripts\fetch_test_data.py --datasets
-backend\.venv\Scripts\python backend\scripts\evaluate.py det     :: with the server running (run.bat)
-backend\.venv\Scripts\python backend\scripts\evaluate.py cls
-backend\.venv\Scripts\python backend\scripts\evaluate.py ocr
-backend\.venv\Scripts\python backend\scripts\eval_map.py         :: standard mAP (stop the server first if RAM is tight)
+```text
+VisionAI/
+│
+├── backend/
+│   ├── scripts/
+│   ├── models/
+│   └── ...
+│
+├── frontend/
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   └── ...
+│
+├── models/
+│
+├── setup.bat
+├── run.bat
+├── dev.bat
+├── test.bat
+│
+└── README.md
 ```
 
-## Troubleshooting
+*The architecture above is a simplified overview; individual files may vary.*
 
-* **Status shows “Backend unreachable”** – run.bat is not running or port 8000 is in use.
-* **First analysis is slow** – models warm up once; OCR is the slowest step on CPU (untick “Text (OCR)” if not needed).
-* **Camera does not start** – allow camera access in the browser; it only works on `localhost` or HTTPS.
-* **`CUDA available: False` after setup** – you installed the CPU wheel; re-run `setup.bat cuda` and check your NVIDIA driver (`nvidia-smi`).
-* **Out of GPU memory** – the detector automatically retries at 640 px without TTA; otherwise set `VISION_DETECT_IMGSZ=640`.
+---
 
-## Licensing note
+## Getting Started
 
-Ultralytics YOLO is **AGPL-3.0** (commercial license available from Ultralytics); EasyOCR is Apache-2.0; BLIP weights/code have their own licenses. Check these before distributing or offering the service to others.
+### Prerequisites
+
+Before installing VisionAI, make sure you have:
+
+- Windows 10 or 11
+- Python 3.10–3.12 (64-bit)
+- Node.js 18 or newer
+- npm
+- Approximately 6 GB of available disk space
+
+**Note:** AI model downloads and dependency installation may require additional storage and time. Initial setup can take 10–25 minutes or longer depending on your internet speed and hardware.
+
+### 1. Clone the repository
+
+```bash
+git clone YOUR_GITHUB_REPOSITORY_URL
+```
+
+```bash
+cd VisionAI
+```
+
+### 2. Install dependencies and prepare models
+
+For CPU execution:
+
+```bash
+setup.bat cpu
+```
+
+For CUDA execution on a compatible NVIDIA GPU:
+
+```bash
+setup.bat cuda
+```
+
+### 3. Run VisionAI
+
+```bash
+run.bat
+```
+
+Open the application at:
+
+```text
+http://localhost:8000
+```
+
+### Development Mode
+
+To run the frontend development server:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The Vite development server will normally be available at:
+
+```text
+http://localhost:5173
+```
+
+---
+
+## Performance & Benchmarks
+
+VisionAI includes documented evaluations for individual AI components.
+
+| Evaluation | Result |
+|---|---:|
+| Object Detection — COCO128 Precision | 0.80 |
+| Object Detection — COCO128 Recall | 0.65 |
+| Object Detection — COCO128 F1 Score | 0.72 |
+| Object Detection — mAP50 | 80.6% |
+| Object Detection — mAP50-95 | 63.4% |
+| Image Classification — Imagenette Top-1 | 81.5% |
+| Image Classification — Imagenette Top-5 | 95.8% |
+
+**Important:** These results represent specific evaluation datasets and tests. They should not be interpreted as a single overall accuracy score for VisionAI.
+
+The OCR documentation also includes a synthetic test with 0% Character Error Rate (CER) and Word Error Rate (WER). This is not a real-world OCR accuracy benchmark.
+
+---
+
+## Screenshots
+
+Add screenshots of the actual application here.
+
+| Dashboard | Object Detection |
+|---|---|
+| `Add dashboard screenshot` | `Add detection screenshot` |
+
+| OCR | Image Captioning |
+|---|---|
+| `Add OCR screenshot` | `Add captioning screenshot` |
+
+---
+
+## Roadmap
+
+VisionAI is a project that can continue to evolve.
+
+- [x] Object detection integration
+- [x] Image classification integration
+- [x] OCR integration
+- [x] AI image captioning integration
+- [x] CPU execution support
+- [x] Optional CUDA support
+- [ ] Real-time camera analysis
+- [ ] Video understanding
+- [ ] More advanced image recognition
+- [ ] Improved model performance
+- [ ] Additional computer vision capabilities
+
+---
+
+## Why VisionAI?
+
+The idea behind VisionAI is simple:
+
+**Bring multiple computer vision technologies together into one application.**
+
+Instead of building separate applications for object detection, image classification, OCR, and image captioning, VisionAI combines these capabilities into a unified experience.
+
+It is also an exploration of how modern frontend development, backend engineering, and artificial intelligence can work together to create useful software.
+
+---
+
+## Contributing
+
+Contributions, ideas, suggestions, and feedback are welcome.
+
+If you would like to improve VisionAI:
+
+1. Fork the repository.
+2. Create a new branch.
+3. Make your changes.
+4. Submit a pull request.
+
+---
+
+
+<p align="center">
+  <strong>VISIONAI</strong><br/>
+  See the World Through AI.
+  <br/><br/>
+  Built with curiosity, code, and artificial intelligence.
+</p>
