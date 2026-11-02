@@ -250,6 +250,7 @@ If you would like to improve VisionAI:
   Built with curiosity, code, and artificial intelligence.
 </p>
 
+
 ## Project Owner
 
 **VisionAI** is developed and maintained by **Arsh Nehal**.
